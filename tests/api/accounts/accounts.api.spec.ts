@@ -156,4 +156,54 @@ describe("Accounts API", () => {
       expect(response.body.error).toContain("Account not found");
     });
   });
+
+  describe("PDF spec: request/response contract", () => {
+    it("POST /accounts — request and response match PDF schema", async () => {
+      const id = "71cde2aa-b9bc-496a-a6f1-34964d05e6fd";
+      const response = await request(app)
+        .post("/accounts")
+        .set("Accept", "application/json")
+        .set("Content-Type", "application/json")
+        .send({
+          name: "test3",
+          direction: "debit",
+          id,
+        })
+        .expect(201);
+
+      expect(response.body).toMatchObject({
+        id,
+        name: "test3",
+        direction: "debit",
+        balance: 0,
+      });
+      expect(response.body).toHaveProperty("balance");
+      expect(response.body).toHaveProperty("direction");
+      expect(response.body).toHaveProperty("id");
+      expect(response.body).toHaveProperty("name");
+    });
+
+    it("GET /accounts/:id — response matches PDF schema (balance, direction, id, name)", async () => {
+      const accountId = "71cde2aa-b9bc-496a-a6f1-34964d05e6fd";
+      await request(app)
+        .post("/accounts")
+        .send({ id: accountId, name: "test3", direction: "debit" })
+        .expect(201);
+
+      const response = await request(app)
+        .get(`/accounts/${accountId}`)
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        id: accountId,
+        name: "test3",
+        direction: "debit",
+        balance: 0,
+      });
+      expect(response.body).toHaveProperty("balance");
+      expect(response.body).toHaveProperty("direction");
+      expect(response.body).toHaveProperty("id");
+      expect(response.body).toHaveProperty("name");
+    });
+  });
 });

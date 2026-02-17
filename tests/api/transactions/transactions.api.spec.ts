@@ -272,4 +272,68 @@ describe("Transactions API", () => {
       expect(response.body.error).toContain("already exists with different data");
     });
   });
+
+  describe("PDF spec: request/response contract", () => {
+    it("POST /transactions — PDF example request and response", async () => {
+      const debitAccountId = "fa967ec9-5be2-4c26-a874-7eeeabfc6da8";
+      const creditAccountId = "dbf17d00-8701-4c4e-9fc5-6ae33c324309";
+      const transactionId = "3256dc3c-7b18-4a21-95c6-146747cf2971";
+
+      await request(app)
+        .post("/accounts")
+        .send({ id: debitAccountId, direction: "debit" })
+        .expect(201);
+      await request(app)
+        .post("/accounts")
+        .send({ id: creditAccountId, direction: "credit" })
+        .expect(201);
+
+      const response = await request(app)
+        .post("/transactions")
+        .set("Content-Type", "application/json")
+        .send({
+          name: "test",
+          id: transactionId,
+          entries: [
+            {
+              direction: "debit",
+              account_id: debitAccountId,
+              amount: 100,
+            },
+            {
+              direction: "credit",
+              account_id: creditAccountId,
+              amount: 100,
+            },
+          ],
+        })
+        .expect(201);
+
+      expect(response.body).toMatchObject({
+        id: transactionId,
+        name: "test",
+        entries: [
+          {
+            id: expect.any(String),
+            account_id: debitAccountId,
+            direction: "debit",
+            amount: 100,
+          },
+          {
+            id: expect.any(String),
+            account_id: creditAccountId,
+            direction: "credit",
+            amount: 100,
+          },
+        ],
+      });
+
+      const debitRes = await request(app).get(`/accounts/${debitAccountId}`);
+      const creditRes = await request(app).get(
+        `/accounts/${creditAccountId}`,
+      );
+      expect(debitRes.body.balance).toBe(100);
+      expect(creditRes.body.balance).toBe(100);
+    });
+  });
 });
