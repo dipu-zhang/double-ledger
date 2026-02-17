@@ -33,7 +33,7 @@ class TransactionService {
       const entryCurrency = entryReq.currency ?? account?.currency ?? DEFAULT_CURRENCY;
 
       return {
-        id: randomUUID(),
+        id: entryReq.id ?? randomUUID(),
         accountId: entryReq.accountId,
         direction: entryReq.direction,
         amount: entryReq.amount,

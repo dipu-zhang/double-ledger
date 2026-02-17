@@ -47,6 +47,14 @@ class CreateTransactionRequestValidator {
         errors.push(`entries[${index}].amount must be a positive integer`);
       }
 
+      if (entry.id !== undefined) {
+        if (typeof entry.id !== "string") {
+          errors.push(`entries[${index}].id must be a string`);
+        } else if (!isValidUUID(entry.id)) {
+          errors.push(`entries[${index}].id must be a valid UUID`);
+        }
+      }
+
       const normalizedCurrency =
         typeof entry.currency === "string"
           ? entry.currency.toUpperCase()
@@ -88,6 +96,7 @@ class CreateTransactionRequestValidator {
           ? entry.currency.toUpperCase()
           : entry.currency;
       return {
+        id: entry.id,
         accountId: entry.account_id,
         direction: dir as Direction,
         amount: entry.amount,

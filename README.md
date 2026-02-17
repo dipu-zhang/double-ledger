@@ -220,7 +220,7 @@ Creates a new double-entry transaction. The transaction must be balanced (sum of
 }
 ```
 
-**IDs and identifiers:** Transaction `id` (if provided) and every entry’s `account_id` must be valid **UUIDs** (e.g. `550e8400-e29b-41d4-a716-446655440000`). Account IDs reference accounts created via POST `/accounts`.
+**IDs and identifiers:** Transaction `id` (if provided), every entry’s `account_id`, and optional entry `id` (if provided) must be valid **UUIDs** (e.g. `550e8400-e29b-41d4-a716-446655440000`). Account IDs reference accounts created via POST `/accounts`.
 
 **Required Fields:**
 - `entries`: Array of at least 2 entries
@@ -231,9 +231,10 @@ Creates a new double-entry transaction. The transaction must be balanced (sum of
 **Optional Fields:**
 - `id`: Custom transaction ID — must be a valid UUID (used for idempotency; auto-generated if not provided)
 - `name`: Description of the transaction
+- `entries[].id`: Optional. If provided must be a valid UUID; if omitted, the entry ID is server-generated.
 - `entries[].currency`: Optional. Omit to use the account’s currency. Pass a supported code (case-insensitive; normalized to uppercase) when you need to specify currency for that entry (e.g. for multi-currency support).
 
-Do **not** send `createdAt` or entry `id` — they are server-generated. All other transaction rules (balanced debits/credits, same currency, etc.) are described under [Business Rules](#business-rules) below.
+Do **not** send `createdAt`. Entry `id` is optional: if provided it must be a valid UUID and is used; if omitted it is server-generated. All other transaction rules (balanced debits/credits, same currency, etc.) are described under [Business Rules](#business-rules) below.
 
 **Response (201):**
 

@@ -239,6 +239,51 @@ describe("CreateTransactionRequestValidator", () => {
     expect(result.entries[0].currency).toBe("GBP");
   });
 
+  it("should accept entry with optional valid UUID id", () => {
+    const entryId = "9f694f8c-9c4c-44cf-9ca9-0cb1a318f0a7";
+    const request = {
+      entries: [
+        {
+          account_id: validAccountId1,
+          direction: Direction.DEBIT,
+          amount: 100,
+          id: entryId,
+        },
+        {
+          account_id: validAccountId2,
+          direction: Direction.CREDIT,
+          amount: 100,
+        },
+      ],
+    };
+
+    const result = createTransactionRequestValidator.validate(request);
+    expect(result.entries[0].id).toBe(entryId);
+    expect(result.entries[1].id).toBeUndefined();
+  });
+
+  it("should reject entry with invalid UUID for id", () => {
+    const request = {
+      entries: [
+        {
+          account_id: validAccountId1,
+          direction: Direction.DEBIT,
+          amount: 100,
+          id: "not-a-uuid",
+        },
+        {
+          account_id: validAccountId2,
+          direction: Direction.CREDIT,
+          amount: 100,
+        },
+      ],
+    };
+
+    expect(() => createTransactionRequestValidator.validate(request)).toThrow(
+      "entries[0].id must be a valid UUID",
+    );
+  });
+
   it("should accept and normalize uppercase direction and lowercase currency in entries", () => {
     const request = {
       entries: [
