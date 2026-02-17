@@ -46,7 +46,7 @@ src/
 
 ### Key Design Patterns
 
-- **Layered Architecture**: Controller → Service → Repository
+- **Layered Architecture**: Controller to Service to Repository
 - **Domain-Driven Design**: Entities, DTOs, Presenters, Validators
 - **Separation of Concerns**: Clear boundaries between layers
 - **Atomicity**: All balance updates happen in a single step
@@ -233,15 +233,7 @@ Creates a new double-entry transaction. The transaction must be balanced (sum of
 - `name`: Description of the transaction
 - `entries[].currency`: Optional. Omit to use the account’s currency. Pass a supported code (case-insensitive; normalized to uppercase) when you need to specify currency for that entry (e.g. for multi-currency support).
 
-**Important Rules:**
-- `createdAt` must **NOT** be provided by the client (server-generated)
-- Entry `id` must **NOT** be provided by the client (server-generated)
-- Transaction must contain at least one debit and one credit
-- Sum of debit amounts must equal sum of credit amounts
-- All referenced accounts must exist
-- All amounts must be positive integers
-- All entries in a transaction must use the same currency
-- Entry currency must match the account's currency
+Do **not** send `createdAt` or entry `id` — they are server-generated. All other transaction rules (balanced debits/credits, same currency, etc.) are described under [Business Rules](#business-rules) below.
 
 **Response (201):**
 
@@ -300,13 +292,13 @@ else:
 
 All transactions must satisfy:
 
-1. ✅ At least 2 entries
-2. ✅ At least one debit AND one credit entry
-3. ✅ Sum of debit amounts = Sum of credit amounts
-4. ✅ All referenced accounts must exist
-5. ✅ All amounts must be positive integers
-6. ✅ All entries must use the same currency
-7. ✅ Each entry's currency must match its account's currency
+1. At least 2 entries
+2. At least one debit AND one credit entry
+3. Sum of debit amounts = Sum of credit amounts
+4. All referenced accounts must exist
+5. All amounts must be positive integers
+6. All entries must use the same currency
+7. Each entry's currency must match its account's currency
 
 ### Atomicity
 
@@ -326,8 +318,8 @@ If validation fails at any step, no changes are made to any account.
 Transactions support idempotency using the optional `id` field:
 
 - **With ID**: If a transaction with the same ID already exists:
-  - ✅ Same payload → Returns existing transaction (no duplicate processing)
-  - ❌ Different payload → Returns 409 Conflict error
+  - Same payload: returns existing transaction (no duplicate processing)
+  - Different payload: returns 409 Conflict error
 - **Without ID**: No idempotency guarantee, always creates new transaction
 
 The system normalizes transactions for comparison by:
