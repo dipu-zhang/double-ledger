@@ -1,0 +1,605 @@
+# Double-Entry Ledger API
+
+A lightweight double-entry ledger HTTP/JSON API built with Node.js and TypeScript, featuring clean layered architecture and comprehensive validation.
+
+## Overview
+
+This API implements a double-entry accounting ledger system where every financial transaction must be balanced: the sum of debits must equal the sum of credits. All account balances are managed through atomic transactions, ensuring data integrity.
+
+## Tech Stack
+
+- **Runtime**: Node.js
+- **Language**: TypeScript
+- **Framework**: Express
+- **Storage**: In-memory Maps (for simplicity)
+- **Testing**: Jest + Supertest
+- **Validation**: In-house validators (no external schema libraries)
+
+## Architecture
+
+The codebase follows a clean, domain-driven architecture organized by feature:
+
+```
+src/
+├── accounts/
+│   ├── dtos/
+│   │   ├── requests/
+│   │   └── responses/
+│   ├── presenters/
+│   ├── validators/
+│   ├── account.service.ts
+│   └── accounts.controller.ts
+├── transactions/
+│   ├── dtos/
+│   │   ├── requests/
+│   │   └── responses/
+│   ├── presenters/
+│   ├── validators/
+│   ├── transaction.service.ts
+│   └── transactions.controller.ts
+└── shared/
+    ├── entities/
+    ├── errors/
+    ├── repositories/
+    └── types/
+```
+
+### Key Design Patterns
+
+- **Layered Architecture**: Controller → Service → Repository
+- **Domain-Driven Design**: Entities, DTOs, Presenters, Validators
+- **Separation of Concerns**: Clear boundaries between layers
+- **Atomicity**: All balance updates happen in a single step
+- **Class-based Components**: Validators and Presenters are classes (DI-ready)
+
+## Money Representation
+
+All monetary values are stored as **integers** to avoid floating-point precision issues. This follows the same pattern as Stripe and other major payment APIs.
+
+**Important:** Values represent the smallest currency unit:
+- For USD: `100` = $1.00 (cents)
+- For JPY: `100` = ¥100 (no decimals)
+- For KWD: `1000` = 1.000 KWD (3 decimals)
+
+**Default Currency:** USD
+
+**Supported Currencies:**
+- **USD** - US Dollar (2 decimals)
+- **EUR** - Euro (2 decimals)
+- **GBP** - British Pound (2 decimals)
+- **JPY** - Japanese Yen (0 decimals)
+- **KWD** - Kuwaiti Dinar (3 decimals)
+
+Currency support is **optional** in the API - if not specified, USD is used by default.
+
+## Setup Instructions
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Build the Project
+
+```bash
+npm run build
+```
+
+### 3. Run the Server
+
+```bash
+npm start
+```
+
+The API will start on port 3000 (or the port specified in `PORT` environment variable).
+
+### 4. Development Mode
+
+```bash
+npm run dev
+```
+
+### 5. Run Tests
+
+```bash
+npm test
+```
+
+Run tests in watch mode:
+
+```bash
+npm run test:watch
+```
+
+Run tests with coverage:
+
+```bash
+npm run test:coverage
+```
+
+## API Endpoints
+
+### 1. Create Account
+
+**POST** `/accounts`
+
+Creates a new ledger account.
+
+**Request Body:**
+
+```json
+{
+  "id": "optional-custom-id",
+  "name": "Cash",
+  "direction": "debit",
+  "balance": 0,
+  "currency": "USD"
+}
+```
+
+**Required Fields:**
+- `direction`: Either `"debit"` or `"credit"`
+
+**Optional Fields:**
+- `id`: Custom account ID (auto-generated UUID if not provided)
+- `name`: Human-readable account name
+- `balance`: Initial balance in smallest currency unit (defaults to 0, must be non-negative integer)
+- `currency`: ISO 4217 currency code (defaults to "USD", must be one of: USD, EUR, GBP, JPY, KWD)
+
+**Response (201):**
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Cash",
+  "direction": "debit",
+  "balance": 0,
+  "currency": "USD"
+}
+```
+
+---
+
+### 2. Get Account
+
+**GET** `/accounts/:id`
+
+Retrieves an account by ID, including current balance.
+
+**Response (200):**
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Cash",
+  "direction": "debit",
+  "balance": 10000,
+  "currency": "USD"
+}
+```
+
+**Response (404):**
+
+```json
+{
+  "error": "Account not found: {id}"
+}
+```
+
+---
+
+### 3. Create Transaction
+
+**POST** `/transactions`
+
+Creates a new double-entry transaction. The transaction must be balanced (sum of debits equals sum of credits).
+
+**Request Body:**
+
+```json
+{
+  "id": "optional-transaction-id",
+  "name": "Sale of goods",
+  "entries": [
+    {
+      "account_id": "cash-account-id",
+      "direction": "debit",
+      "amount": 5000,
+      "currency": "USD"
+    },
+    {
+      "account_id": "revenue-account-id",
+      "direction": "credit",
+      "amount": 5000,
+      "currency": "USD"
+    }
+  ]
+}
+```
+
+**Required Fields:**
+- `entries`: Array of at least 2 entries
+  - `account_id`: ID of an existing account
+  - `direction`: Either `"debit"` or `"credit"`
+  - `amount`: Positive integer amount in smallest currency unit
+
+**Optional Fields:**
+- `id`: Custom transaction ID (used for idempotency)
+- `name`: Description of the transaction
+- `entries[].currency`: Currency code (defaults to account's currency if not specified)
+
+**Important Rules:**
+- `createdAt` must **NOT** be provided by the client (server-generated)
+- Entry `id` must **NOT** be provided by the client (server-generated)
+- Transaction must contain at least one debit and one credit
+- Sum of debit amounts must equal sum of credit amounts
+- All referenced accounts must exist
+- All amounts must be positive integers
+- All entries in a transaction must use the same currency
+- Entry currency must match the account's currency
+
+**Response (201):**
+
+```json
+{
+  "id": "tx-550e8400-e29b-41d4-a716-446655440000",
+  "name": "Sale of goods",
+  "entries": [
+    {
+      "id": "entry-550e8400-e29b-41d4-a716-446655440001",
+      "account_id": "cash-account-id",
+      "direction": "debit",
+      "amount": 5000,
+      "currency": "USD"
+    },
+    {
+      "id": "entry-550e8400-e29b-41d4-a716-446655440002",
+      "account_id": "revenue-account-id",
+      "direction": "credit",
+      "amount": 5000,
+      "currency": "USD"
+    }
+  ],
+  "createdAt": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Error Responses:**
+
+- **400 Bad Request**: Invalid request format or unbalanced transaction
+- **404 Not Found**: Referenced account doesn't exist
+- **409 Conflict**: Transaction ID already used with different data
+
+---
+
+## Business Rules
+
+### Account Balance Updates
+
+Account balances are updated based on the relationship between the account's natural direction and the entry direction:
+
+```
+if (account.direction === entry.direction):
+    balance += amount  // Increases balance
+else:
+    balance -= amount  // Decreases balance
+```
+
+**Examples:**
+- **Debit account** + **debit entry** = increase balance
+- **Debit account** + **credit entry** = decrease balance
+- **Credit account** + **credit entry** = increase balance
+- **Credit account** + **debit entry** = decrease balance
+
+### Transaction Validation
+
+All transactions must satisfy:
+
+1. ✅ At least 2 entries
+2. ✅ At least one debit AND one credit entry
+3. ✅ Sum of debit amounts = Sum of credit amounts
+4. ✅ All referenced accounts must exist
+5. ✅ All amounts must be positive integers
+6. ✅ All entries must use the same currency
+7. ✅ Each entry's currency must match its account's currency
+
+### Atomicity
+
+Transactions are applied atomically:
+
+1. **Validate** all business rules (no state changes)
+2. **Calculate** balance changes for all affected accounts
+3. **Apply** all balance updates
+4. **Save** the transaction record
+
+If validation fails at any step, no changes are made to any account.
+
+---
+
+## Idempotency
+
+Transactions support idempotency using the optional `id` field:
+
+- **With ID**: If a transaction with the same ID already exists:
+  - ✅ Same payload → Returns existing transaction (no duplicate processing)
+  - ❌ Different payload → Returns 409 Conflict error
+- **Without ID**: No idempotency guarantee, always creates new transaction
+
+The system normalizes transactions for comparison by:
+- Sorting entries by account_id, direction, and amount
+- Ignoring entry IDs and timestamps
+- Treating undefined and empty string names as equivalent
+
+---
+
+## Example Usage
+
+### Complete Workflow
+
+```bash
+# 1. Create a Cash account (debit type)
+curl -X POST http://localhost:3000/accounts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Cash",
+    "direction": "debit",
+    "balance": 0
+  }'
+
+# Response:
+# {
+#   "id": "cash-123",
+#   "name": "Cash",
+#   "direction": "debit",
+#   "balance": 0,
+#   "currency": "USD"
+# }
+
+# 2. Create a Revenue account (credit type)
+curl -X POST http://localhost:3000/accounts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Revenue",
+    "direction": "credit",
+    "balance": 0
+  }'
+
+# Response:
+# {
+#   "id": "revenue-456",
+#   "name": "Revenue",
+#   "direction": "credit",
+#   "balance": 0,
+#   "currency": "USD"
+# }
+
+# 3. Create a balanced transaction (sale of $50.00 = 5000 cents)
+curl -X POST http://localhost:3000/transactions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Sale of goods",
+    "entries": [
+      {
+        "account_id": "cash-123",
+        "direction": "debit",
+        "amount": 5000
+      },
+      {
+        "account_id": "revenue-456",
+        "direction": "credit",
+        "amount": 5000
+      }
+    ]
+  }'
+
+# Response includes server-generated entry IDs and createdAt timestamp
+
+# 4. Check updated Cash balance
+curl http://localhost:3000/accounts/cash-123
+
+# Response:
+# {
+#   "id": "cash-123",
+#   "name": "Cash",
+#   "direction": "debit",
+#   "balance": 5000,
+#   "currency": "USD"
+# }
+
+# 5. Check updated Revenue balance
+curl http://localhost:3000/accounts/revenue-456
+
+# Response:
+# {
+#   "id": "revenue-456",
+#   "name": "Revenue",
+#   "direction": "credit",
+#   "balance": 5000,
+#   "currency": "USD"
+# }
+```
+
+---
+
+### Example: Unbalanced Transaction (Error)
+
+```bash
+curl -X POST http://localhost:3000/transactions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entries": [
+      {
+        "account_id": "cash-123",
+        "direction": "debit",
+        "amount": 5000
+      },
+      {
+        "account_id": "revenue-456",
+        "direction": "credit",
+        "amount": 3000
+      }
+    ]
+  }'
+
+# Response (400):
+# {
+#   "error": "Transaction must be balanced: debits=5000, credits=3000"
+# }
+```
+
+---
+
+### Example: Idempotent Retry
+
+```bash
+# First request with custom ID
+curl -X POST http://localhost:3000/transactions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "tx-sale-001",
+    "name": "Sale",
+    "entries": [
+      {
+        "account_id": "cash-123",
+        "direction": "debit",
+        "amount": 2500
+      },
+      {
+        "account_id": "revenue-456",
+        "direction": "credit",
+        "amount": 2500
+      }
+    ]
+  }'
+
+# Exact same request again (network retry scenario)
+curl -X POST http://localhost:3000/transactions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "tx-sale-001",
+    "name": "Sale",
+    "entries": [
+      {
+        "account_id": "cash-123",
+        "direction": "debit",
+        "amount": 2500
+      },
+      {
+        "account_id": "revenue-456",
+        "direction": "credit",
+        "amount": 2500
+      }
+    ]
+  }'
+
+# Response: Returns the same transaction
+# Balances are only updated ONCE (idempotent)
+```
+
+---
+
+### Example: Multi-Currency Support
+
+```bash
+# Create a EUR account
+curl -X POST http://localhost:3000/accounts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "EUR Cash",
+    "direction": "debit",
+    "currency": "EUR"
+  }'
+
+# Response:
+# {
+#   "id": "eur-cash-789",
+#   "name": "EUR Cash",
+#   "direction": "debit",
+#   "balance": 0,
+#   "currency": "EUR"
+# }
+
+# Create a EUR Revenue account
+curl -X POST http://localhost:3000/accounts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "EUR Revenue",
+    "direction": "credit",
+    "currency": "EUR"
+  }'
+
+# Create EUR transaction (€50.00 = 5000 cents)
+curl -X POST http://localhost:3000/transactions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "European sale",
+    "entries": [
+      {
+        "account_id": "eur-cash-789",
+        "direction": "debit",
+        "amount": 5000,
+        "currency": "EUR"
+      },
+      {
+        "account_id": "eur-revenue-790",
+        "direction": "credit",
+        "amount": 5000,
+        "currency": "EUR"
+      }
+    ]
+  }'
+```
+
+---
+
+### Example: Mixed Currency Transaction (Error)
+
+```bash
+# Attempting to mix USD and EUR in one transaction
+curl -X POST http://localhost:3000/transactions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entries": [
+      {
+        "account_id": "cash-123",
+        "direction": "debit",
+        "amount": 5000,
+        "currency": "USD"
+      },
+      {
+        "account_id": "eur-cash-789",
+        "direction": "credit",
+        "amount": 5000,
+        "currency": "EUR"
+      }
+    ]
+  }'
+
+# Response (400):
+# {
+#   "error": "Transaction cannot mix currencies: USD, EUR"
+# }
+```
+
+---
+
+## Testing
+
+The project includes comprehensive test coverage:
+
+- **Unit Tests**: Services, Validators, Presenters, Repositories
+- **API Tests**: Full HTTP endpoint integration tests with supertest
+
+**Test Statistics:**
+- 12 test suites
+- 108 tests
+- 100% passing
+
+All tests use in-memory repositories that are cleared between test runs.
+
+---
+
+## License
+
+MIT
