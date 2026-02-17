@@ -14,9 +14,11 @@ class CreateAccountRequestValidator {
 
     const req = body as any;
 
+    const normalizedDirection =
+      typeof req.direction === "string" ? req.direction.toLowerCase() : req.direction;
     if (!req.direction) {
       errors.push("direction is required");
-    } else if (!Object.values(Direction).includes(req.direction)) {
+    } else if (normalizedDirection !== "debit" && normalizedDirection !== "credit") {
       errors.push("direction must be 'debit' or 'credit'");
     }
 
@@ -38,10 +40,12 @@ class CreateAccountRequestValidator {
       }
     }
 
+    const normalizedCurrency =
+      typeof req.currency === "string" ? req.currency.toUpperCase() : req.currency;
     if (req.currency !== undefined) {
       if (typeof req.currency !== "string") {
         errors.push("currency must be a string");
-      } else if (!isSupportedCurrency(req.currency)) {
+      } else if (!isSupportedCurrency(normalizedCurrency)) {
         errors.push("currency must be a supported currency code (USD, EUR, GBP, JPY, KWD)");
       }
     }
@@ -53,9 +57,9 @@ class CreateAccountRequestValidator {
     return {
       id: req.id,
       name: req.name,
-      direction: req.direction,
+      direction: normalizedDirection as Direction,
       balance: req.balance,
-      currency: req.currency ? (req.currency.toUpperCase() as Currency) : undefined,
+      currency: req.currency ? (normalizedCurrency as Currency) : undefined,
     };
   }
 }

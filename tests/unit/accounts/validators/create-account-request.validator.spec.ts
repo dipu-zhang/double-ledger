@@ -46,6 +46,21 @@ describe("CreateAccountRequestValidator", () => {
     );
   });
 
+  it("should accept and normalize uppercase direction to lowercase", () => {
+    const result = createAccountRequestValidator.validate({
+      direction: "DEBIT",
+    });
+    expect(result.direction).toBe("debit");
+  });
+
+  it("should accept and normalize lowercase currency to uppercase", () => {
+    const result = createAccountRequestValidator.validate({
+      direction: Direction.DEBIT,
+      currency: "eur",
+    });
+    expect(result.currency).toBe("EUR");
+  });
+
   it("should reject non-string name", () => {
     const request = {
       direction: Direction.DEBIT,

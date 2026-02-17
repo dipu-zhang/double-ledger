@@ -238,4 +238,29 @@ describe("CreateTransactionRequestValidator", () => {
     expect(result.entries[0].accountId).toBe(validAccountId1);
     expect(result.entries[0].currency).toBe("GBP");
   });
+
+  it("should accept and normalize uppercase direction and lowercase currency in entries", () => {
+    const request = {
+      entries: [
+        {
+          account_id: validAccountId1,
+          direction: "CREDIT",
+          amount: 100,
+          currency: "usd",
+        },
+        {
+          account_id: validAccountId2,
+          direction: "DEBIT",
+          amount: 100,
+          currency: "USD",
+        },
+      ],
+    };
+
+    const result = createTransactionRequestValidator.validate(request);
+    expect(result.entries[0].direction).toBe("credit");
+    expect(result.entries[0].currency).toBe("USD");
+    expect(result.entries[1].direction).toBe("debit");
+    expect(result.entries[1].currency).toBe("USD");
+  });
 });

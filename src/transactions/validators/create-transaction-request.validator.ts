@@ -30,9 +30,13 @@ class CreateTransactionRequestValidator {
         errors.push(`entries[${index}].account_id must be a valid UUID`);
       }
 
+      const normalizedDir =
+        typeof entry.direction === "string"
+          ? entry.direction.toLowerCase()
+          : entry.direction;
       if (
         !entry.direction ||
-        !Object.values(Direction).includes(entry.direction)
+        (normalizedDir !== "debit" && normalizedDir !== "credit")
       ) {
         errors.push(
           `entries[${index}].direction is required and must be 'debit' or 'credit'`,
@@ -43,10 +47,14 @@ class CreateTransactionRequestValidator {
         errors.push(`entries[${index}].amount must be a positive integer`);
       }
 
+      const normalizedCurrency =
+        typeof entry.currency === "string"
+          ? entry.currency.toUpperCase()
+          : entry.currency;
       if (entry.currency !== undefined) {
         if (typeof entry.currency !== "string") {
           errors.push(`entries[${index}].currency must be a string`);
-        } else if (!isSupportedCurrency(entry.currency)) {
+        } else if (!isSupportedCurrency(normalizedCurrency)) {
           errors.push(
             `entries[${index}].currency must be a supported currency code (USD, EUR, GBP, JPY, KWD)`,
           );
@@ -70,12 +78,22 @@ class CreateTransactionRequestValidator {
       throw new ValidationError(errors.join(", "));
     }
 
-    const entries: CreateTransactionRequestEntry[] = req.entries.map((entry: any) => ({
-      accountId: entry.account_id,
-      direction: entry.direction,
-      amount: entry.amount,
-      currency: entry.currency ? (entry.currency.toUpperCase() as Currency) : undefined,
-    }));
+    const entries: CreateTransactionRequestEntry[] = req.entries.map((entry: any) => {
+      const dir =
+        typeof entry.direction === "string"
+          ? entry.direction.toLowerCase()
+          : entry.direction;
+      const curr =
+        typeof entry.currency === "string"
+          ? entry.currency.toUpperCase()
+          : entry.currency;
+      return {
+        accountId: entry.account_id,
+        direction: dir as Direction,
+        amount: entry.amount,
+        currency: entry.currency ? (curr as Currency) : undefined,
+      };
+    });
 
     return {
       id: req.id,
