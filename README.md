@@ -130,7 +130,7 @@ Creates a new ledger account.
 
 ```json
 {
-  "id": "optional-custom-id",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "Cash",
   "direction": "debit",
   "balance": 0,
@@ -201,17 +201,17 @@ Creates a new double-entry transaction. The transaction must be balanced (sum of
 
 ```json
 {
-  "id": "optional-transaction-id",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "Sale of goods",
   "entries": [
     {
-      "account_id": "cash-account-id",
+      "account_id": "fa967ec9-5be2-4c26-a874-7eeeabfc6da8",
       "direction": "debit",
       "amount": 5000,
       "currency": "USD"
     },
     {
-      "account_id": "revenue-account-id",
+      "account_id": "dbf17d00-8701-4c4e-9fc5-6ae33c324309",
       "direction": "credit",
       "amount": 5000,
       "currency": "USD"
@@ -239,25 +239,25 @@ Do **not** send `createdAt` or entry `id` — they are server-generated. All oth
 
 ```json
 {
-  "id": "tx-550e8400-e29b-41d4-a716-446655440000",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "Sale of goods",
   "entries": [
     {
-      "id": "entry-550e8400-e29b-41d4-a716-446655440001",
-      "account_id": "cash-account-id",
+      "id": "9f694f8c-9c4c-44cf-9ca9-0cb1a318f0a7",
+      "account_id": "fa967ec9-5be2-4c26-a874-7eeeabfc6da8",
       "direction": "debit",
       "amount": 5000,
       "currency": "USD"
     },
     {
-      "id": "entry-550e8400-e29b-41d4-a716-446655440002",
-      "account_id": "revenue-account-id",
+      "id": "a5c1b7f0-e52e-4ab6-8f31-c380c2223efa",
+      "account_id": "dbf17d00-8701-4c4e-9fc5-6ae33c324309",
       "direction": "credit",
       "amount": 5000,
       "currency": "USD"
     }
   ],
-  "createdAt": "2024-01-15T10:30:00.000Z"
+  "created_at": "2024-01-15T10:30:00.000Z"
 }
 ```
 
@@ -338,10 +338,11 @@ The system normalizes transactions for comparison by:
 ### Complete Workflow
 
 ```bash
-# 1. Create a Cash account (debit type)
+# 1. Create a Cash account (debit type) with a UUID
 curl -X POST http://localhost:3000/accounts \
   -H "Content-Type: application/json" \
   -d '{
+    "id": "fa967ec9-5be2-4c26-a874-7eeeabfc6da8",
     "name": "Cash",
     "direction": "debit",
     "balance": 0
@@ -349,17 +350,18 @@ curl -X POST http://localhost:3000/accounts \
 
 # Response:
 # {
-#   "id": "cash-123",
+#   "id": "fa967ec9-5be2-4c26-a874-7eeeabfc6da8",
 #   "name": "Cash",
 #   "direction": "debit",
 #   "balance": 0,
 #   "currency": "USD"
 # }
 
-# 2. Create a Revenue account (credit type)
+# 2. Create a Revenue account (credit type) with a UUID
 curl -X POST http://localhost:3000/accounts \
   -H "Content-Type: application/json" \
   -d '{
+    "id": "dbf17d00-8701-4c4e-9fc5-6ae33c324309",
     "name": "Revenue",
     "direction": "credit",
     "balance": 0
@@ -367,7 +369,7 @@ curl -X POST http://localhost:3000/accounts \
 
 # Response:
 # {
-#   "id": "revenue-456",
+#   "id": "dbf17d00-8701-4c4e-9fc5-6ae33c324309",
 #   "name": "Revenue",
 #   "direction": "credit",
 #   "balance": 0,
@@ -381,26 +383,26 @@ curl -X POST http://localhost:3000/transactions \
     "name": "Sale of goods",
     "entries": [
       {
-        "account_id": "cash-123",
+        "account_id": "fa967ec9-5be2-4c26-a874-7eeeabfc6da8",
         "direction": "debit",
         "amount": 5000
       },
       {
-        "account_id": "revenue-456",
+        "account_id": "dbf17d00-8701-4c4e-9fc5-6ae33c324309",
         "direction": "credit",
         "amount": 5000
       }
     ]
   }'
 
-# Response includes server-generated entry IDs and createdAt timestamp
+# Response includes server-generated entry IDs and created_at timestamp
 
 # 4. Check updated Cash balance
-curl http://localhost:3000/accounts/cash-123
+curl http://localhost:3000/accounts/fa967ec9-5be2-4c26-a874-7eeeabfc6da8
 
 # Response:
 # {
-#   "id": "cash-123",
+#   "id": "fa967ec9-5be2-4c26-a874-7eeeabfc6da8",
 #   "name": "Cash",
 #   "direction": "debit",
 #   "balance": 5000,
@@ -408,11 +410,11 @@ curl http://localhost:3000/accounts/cash-123
 # }
 
 # 5. Check updated Revenue balance
-curl http://localhost:3000/accounts/revenue-456
+curl http://localhost:3000/accounts/dbf17d00-8701-4c4e-9fc5-6ae33c324309
 
 # Response:
 # {
-#   "id": "revenue-456",
+#   "id": "dbf17d00-8701-4c4e-9fc5-6ae33c324309",
 #   "name": "Revenue",
 #   "direction": "credit",
 #   "balance": 5000,
@@ -430,12 +432,12 @@ curl -X POST http://localhost:3000/transactions \
   -d '{
     "entries": [
       {
-        "account_id": "cash-123",
+        "account_id": "fa967ec9-5be2-4c26-a874-7eeeabfc6da8",
         "direction": "debit",
         "amount": 5000
       },
       {
-        "account_id": "revenue-456",
+        "account_id": "dbf17d00-8701-4c4e-9fc5-6ae33c324309",
         "direction": "credit",
         "amount": 3000
       }
@@ -453,20 +455,20 @@ curl -X POST http://localhost:3000/transactions \
 ### Example: Idempotent Retry
 
 ```bash
-# First request with custom ID
+# First request with custom transaction UUID
 curl -X POST http://localhost:3000/transactions \
   -H "Content-Type: application/json" \
   -d '{
-    "id": "tx-sale-001",
+    "id": "3256dc3c-7b18-4a21-95c6-146747cf2971",
     "name": "Sale",
     "entries": [
       {
-        "account_id": "cash-123",
+        "account_id": "fa967ec9-5be2-4c26-a874-7eeeabfc6da8",
         "direction": "debit",
         "amount": 2500
       },
       {
-        "account_id": "revenue-456",
+        "account_id": "dbf17d00-8701-4c4e-9fc5-6ae33c324309",
         "direction": "credit",
         "amount": 2500
       }
@@ -477,16 +479,16 @@ curl -X POST http://localhost:3000/transactions \
 curl -X POST http://localhost:3000/transactions \
   -H "Content-Type: application/json" \
   -d '{
-    "id": "tx-sale-001",
+    "id": "3256dc3c-7b18-4a21-95c6-146747cf2971",
     "name": "Sale",
     "entries": [
       {
-        "account_id": "cash-123",
+        "account_id": "fa967ec9-5be2-4c26-a874-7eeeabfc6da8",
         "direction": "debit",
         "amount": 2500
       },
       {
-        "account_id": "revenue-456",
+        "account_id": "dbf17d00-8701-4c4e-9fc5-6ae33c324309",
         "direction": "credit",
         "amount": 2500
       }
@@ -502,10 +504,11 @@ curl -X POST http://localhost:3000/transactions \
 ### Example: Multi-Currency Support
 
 ```bash
-# Create a EUR account
+# Create a EUR account with a UUID
 curl -X POST http://localhost:3000/accounts \
   -H "Content-Type: application/json" \
   -d '{
+    "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
     "name": "EUR Cash",
     "direction": "debit",
     "currency": "EUR"
@@ -513,17 +516,18 @@ curl -X POST http://localhost:3000/accounts \
 
 # Response:
 # {
-#   "id": "eur-cash-789",
+#   "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
 #   "name": "EUR Cash",
 #   "direction": "debit",
 #   "balance": 0,
 #   "currency": "EUR"
 # }
 
-# Create a EUR Revenue account
+# Create a EUR Revenue account with a UUID
 curl -X POST http://localhost:3000/accounts \
   -H "Content-Type: application/json" \
   -d '{
+    "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
     "name": "EUR Revenue",
     "direction": "credit",
     "currency": "EUR"
@@ -536,13 +540,13 @@ curl -X POST http://localhost:3000/transactions \
     "name": "European sale",
     "entries": [
       {
-        "account_id": "eur-cash-789",
+        "account_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
         "direction": "debit",
         "amount": 5000,
         "currency": "EUR"
       },
       {
-        "account_id": "eur-revenue-790",
+        "account_id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
         "direction": "credit",
         "amount": 5000,
         "currency": "EUR"
@@ -562,13 +566,13 @@ curl -X POST http://localhost:3000/transactions \
   -d '{
     "entries": [
       {
-        "account_id": "cash-123",
+        "account_id": "fa967ec9-5be2-4c26-a874-7eeeabfc6da8",
         "direction": "debit",
         "amount": 5000,
         "currency": "USD"
       },
       {
-        "account_id": "eur-cash-789",
+        "account_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
         "direction": "credit",
         "amount": 5000,
         "currency": "EUR"
