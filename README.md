@@ -1,10 +1,10 @@
 # Double-Entry Ledger API
 
-A lightweight double-entry ledger HTTP/JSON API built with Node.js and TypeScript, featuring clean layered architecture and comprehensive validation.
+A lightweight double-entry ledger HTTP/JSON API built with Node.js and TypeScript, featuring clean layered architecture and comprehensive validation. It follows the Conduit ledger challenge spec; extensions include optional multi-currency (USD, EUR, GBP, JPY, KWD), UUIDs for all IDs, and idempotency for transactions.
 
 ## Overview
 
-This API implements a double-entry accounting ledger system where every financial transaction must be balanced: the sum of debits must equal the sum of credits. All account balances are managed through atomic transactions, ensuring data integrity.
+This API implements a double-entry accounting ledger system where every financial transaction must be balanced: the sum of debits must equal the sum of credits. Account balances can only be changed by creating transactions (never set or updated directly). All balance updates are applied atomically, ensuring data integrity.
 
 ## Tech Stack
 
@@ -271,9 +271,13 @@ Do **not** send `createdAt` or entry `id` — they are server-generated. All oth
 
 ## Business Rules
 
+### Account Balances Only Change Via Transactions
+
+Account balances can never be modified directly. They can only be changed by creating transactions. There is no endpoint to set or patch an account balance; all balance changes come from applying transaction entries.
+
 ### Account Balance Updates
 
-Account balances are updated based on the relationship between the account's natural direction and the entry direction:
+When a transaction is applied, each account balance is updated based on the relationship between the account's natural direction and the entry direction:
 
 ```
 if (account.direction === entry.direction):
