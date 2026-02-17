@@ -170,6 +170,28 @@ describe("Transactions API", () => {
       expect(response.body.error).toContain("id must be a valid UUID");
     });
 
+    it("should reject transaction with decimal amount in entry", async () => {
+      const response = await request(app)
+        .post("/transactions")
+        .send({
+          entries: [
+            {
+              account_id: cashAccountId,
+              direction: Direction.DEBIT,
+              amount: 10.5,
+            },
+            {
+              account_id: revenueAccountId,
+              direction: Direction.CREDIT,
+              amount: 10.5,
+            },
+          ],
+        })
+        .expect(400);
+
+      expect(response.body.error).toContain("positive integer");
+    });
+
     it("should create transaction with valid UUID", async () => {
       const validUUID = "750e8400-e29b-41d4-a716-446655440000";
       const response = await request(app)
