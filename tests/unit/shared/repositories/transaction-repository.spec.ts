@@ -2,6 +2,7 @@ import { transactionRepository } from "../../../../src/shared/repositories/trans
 import { Transaction } from "../../../../src/shared/entities/transaction";
 import { Direction } from "../../../../src/shared/types/direction";
 import { Currency } from "../../../../src/shared/types/currency";
+import { ConflictError } from "../../../../src/shared/errors/conflict-error";
 
 describe("TransactionRepository", () => {
   afterEach(() => {
@@ -58,6 +59,90 @@ describe("TransactionRepository", () => {
         "Transaction with id 550e8400-e29b-41d4-a716-446655440002 already exists",
       );
       expect(transactionRepository.findById("550e8400-e29b-41d4-a716-446655440002")).toEqual(transaction);
+    });
+
+    it("should throw ConflictError when creating transaction with entry id that already exists", () => {
+      const sharedEntryId = "e1000000-e29b-41d4-a716-446655440001";
+      const first: Transaction = {
+        id: "550e8400-e29b-41d4-a716-446655440010",
+        name: "First",
+        createdAt: "2026-02-16T10:00:00.000Z",
+        entries: [
+          {
+            id: sharedEntryId,
+            accountId: "acc-1",
+            direction: Direction.DEBIT,
+            amount: 100,
+            currency: Currency.USD,
+          },
+          {
+            id: "e1000000-e29b-41d4-a716-446655440002",
+            accountId: "acc-2",
+            direction: Direction.CREDIT,
+            amount: 100,
+            currency: Currency.USD,
+          },
+        ],
+      };
+      transactionRepository.create(first);
+
+      const second: Transaction = {
+        id: "550e8400-e29b-41d4-a716-446655440011",
+        name: "Second",
+        createdAt: "2026-02-16T11:00:00.000Z",
+        entries: [
+          {
+            id: sharedEntryId,
+            accountId: "acc-1",
+            direction: Direction.DEBIT,
+            amount: 50,
+            currency: Currency.USD,
+          },
+          {
+            id: "e1000000-e29b-41d4-a716-446655440003",
+            accountId: "acc-2",
+            direction: Direction.CREDIT,
+            amount: 50,
+            currency: Currency.USD,
+          },
+        ],
+      };
+
+      expect(() => transactionRepository.create(second)).toThrow(ConflictError);
+      expect(() => transactionRepository.create(second)).toThrow(
+        `Entry with id ${sharedEntryId} already exists`,
+      );
+      expect(transactionRepository.findById("550e8400-e29b-41d4-a716-446655440011")).toBeUndefined();
+    });
+
+    it("should throw ConflictError when same transaction has duplicate entry ids", () => {
+      const transaction: Transaction = {
+        id: "550e8400-e29b-41d4-a716-446655440012",
+        name: "Dup entries",
+        createdAt: "2026-02-16T10:00:00.000Z",
+        entries: [
+          {
+            id: "entry-same",
+            accountId: "acc-1",
+            direction: Direction.DEBIT,
+            amount: 100,
+            currency: Currency.USD,
+          },
+          {
+            id: "entry-same",
+            accountId: "acc-2",
+            direction: Direction.CREDIT,
+            amount: 100,
+            currency: Currency.USD,
+          },
+        ],
+      };
+
+      expect(() => transactionRepository.create(transaction)).toThrow(ConflictError);
+      expect(() => transactionRepository.create(transaction)).toThrow(
+        "Entry with id entry-same already exists",
+      );
+      expect(transactionRepository.findById("550e8400-e29b-41d4-a716-446655440012")).toBeUndefined();
     });
   });
 

@@ -271,6 +271,34 @@ describe("Transactions API", () => {
 
       expect(response.body.error).toContain("already exists with different data");
     });
+
+    it("should reject 409 when reusing an entry id from another transaction", async () => {
+      const entryId = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+      await request(app)
+        .post("/transactions")
+        .send({
+          name: "First",
+          entries: [
+            { account_id: cashAccountId, direction: Direction.DEBIT, amount: 50, id: entryId },
+            { account_id: revenueAccountId, direction: Direction.CREDIT, amount: 50 },
+          ],
+        })
+        .expect(201);
+
+      const response = await request(app)
+        .post("/transactions")
+        .send({
+          name: "Second",
+          entries: [
+            { account_id: cashAccountId, direction: Direction.DEBIT, amount: 30, id: entryId },
+            { account_id: revenueAccountId, direction: Direction.CREDIT, amount: 30 },
+          ],
+        })
+        .expect(409);
+
+      expect(response.body.error).toContain("Entry with id");
+      expect(response.body.error).toContain("already exists");
+    });
   });
 
   describe("PDF spec: request/response contract", () => {
